@@ -43,6 +43,20 @@
             z-index: 1000;
         }
 
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .font-select {
+            padding: 8px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
         .btn { border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; color: white; margin-left: 5px; }
         .btn-logo { background-color: #FF9800; }
         .btn-add { background-color: #2196F3; }
@@ -62,7 +76,7 @@
             flex-direction: column;
         }
 
-        /* Header Layout - NILUWAGAN ANG ESPASYO */
+        /* Header Layout */
         .header { 
             display: flex; 
             justify-content: space-between; 
@@ -74,7 +88,7 @@
         .logo-section { 
             display: flex; 
             flex-direction: column; 
-            width: 45%; /* Sapat na espasyo sa logo area */
+            width: 45%; 
         }
         
         .company-logo-preview { max-width: 100%; max-height: 80px; display: none; }
@@ -85,8 +99,8 @@
             text-align: right; 
             font-size: 11px; 
             line-height: 1.5;
-            width: 45%; /* Sapat na espasyo sa contact area */
-            padding-top: 5px; /* Kaunting gap mula sa taas */
+            width: 45%; 
+            padding-top: 5px; 
         }
 
         .quotation-bar { background-color: var(--primary-blue); color: white; text-align: center; padding: 8px; letter-spacing: 10px; font-weight: bold; font-size: 20px; margin-bottom: 20px; }
@@ -95,14 +109,26 @@
         
         /* Table */
         table { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 20px; table-layout: fixed; }
-        th { background-color: var(--light-blue); border: 1px solid var(--border-color); padding: 10px; font-weight: bold; }
-        td { border: 1px solid var(--border-color); padding: 10px; vertical-align: top; word-wrap: break-word; }
+        th { background-color: var(--light-blue); border: 1px solid var(--border-color); padding: 8px 5px; font-weight: bold; text-align: center; }
+        td { border: 1px solid var(--border-color); padding: 8px 5px; vertical-align: middle; word-wrap: break-word; }
+
+        /* Price Input Styling inside editable cells */
+        .price-input {
+            width: 100%;
+            border: none;
+            background: transparent;
+            text-align: right;
+            font-family: inherit;
+            font-size: 12px;
+            outline: none;
+        }
+        .price-input:focus { background: #fffde7; }
 
         /* Product Image inside table */
         .product-img-box { width: 150px; text-align: center; margin-top: 10px; }
         .product-image-preview { max-width: 100%; max-height: 120px; display: none; border: 1px solid #ddd; }
 
-        .footer-wrapper { page-break-inside: avoid; }
+        .footer-wrapper { page-break-inside: avoid; margin-top: auto; }
         .grand-total-row { text-align: right; font-size: 18px; font-weight: bold; margin-bottom: 15px; }
         .terms-area { color: red; font-style: italic; margin-bottom: 15px; font-size: 12px; }
         
@@ -112,15 +138,27 @@
         [contenteditable="true"]:focus { background: #fffde7; outline: none; }
 
         @media print {
-            .controls-area, .btn-delete, .btn-upload-small { display: none !important; }
-            .quotation-card { border: none; box-shadow: none; width: 100%; margin: 0; }
+            .controls-area, .btn-delete, .btn-upload-small, input[type="radio"] { display: none !important; }
+            .quotation-card { border: none; box-shadow: none; width: 100%; margin: 0; padding: 0; }
+            body { background-color: #fff; padding: 0; }
+            /* Hide the radio button column structure indicators if needed, or keep it clean */
         }
     </style>
 </head>
 <body>
 
 <div class="controls-area">
-    <div>📝 Quotation Builder</div>
+    <div class="control-group">
+        <strong>📝 Quotation Builder</strong>
+        <select id="fontChanger" class="font-select" onchange="changeQuotationFont(this.value)">
+            <option value="Arial, sans-serif">Arial</option>
+            <option value="'Times New Roman', serif">Times New Roman</option>
+            <option value="'Courier New', monospace">Courier New</option>
+            <option value="Georgia, serif">Georgia</option>
+            <option value="'Segoe UI', Tahoma, Geneva, Verdana, sans-serif">Segoe UI</option>
+            <option value="Impact, Charcoal, sans-serif">Impact</option>
+        </select>
+    </div>
     <div>
         <input type="file" id="logo-input" hidden accept="image/*" onchange="loadLogo(this)">
         <button class="btn btn-logo" onclick="document.getElementById('logo-input').click()">Insert Logo</button>
@@ -129,7 +167,7 @@
     </div>
 </div>
 
-<div class="quotation-card">
+<div class="quotation-card" id="quotationCard">
     <div class="header">
         <div class="logo-section">
             <div id="logo-placeholder" class="logo-placeholder">LOGO HERE</div>
@@ -160,11 +198,12 @@
     <table>
         <thead>
             <tr>
-                <th width="10%">ITEM</th>
-                <th width="45%">DESCRIPTION</th>
-                <th width="10%">QTY</th>
-                <th width="15%">PRICE</th>
-                <th width="20%">TOTAL</th>
+                <th width="8%">ITEM</th>
+                <th width="37%">DESCRIPTION</th>
+                <th width="8%">QTY</th>
+                <th width="15%">CASH PRICE</th>
+                <th width="15%">REGULAR PRICE</th>
+                <th width="17%">TOTAL</th>
             </tr>
         </thead>
         <tbody id="tableBody"></tbody>
@@ -190,10 +229,16 @@
 <script>
     let itemCount = 0;
 
+    // FUNCTION PARA PALITAN ANG FONT NG QUOTATION CARD
+    function changeQuotationFont(fontName) {
+        document.getElementById('quotationCard').style.fontFamily = fontName;
+    }
+
     function addItem() {
         itemCount++;
         const tbody = document.getElementById('tableBody');
         const row = document.createElement('tr');
+        row.className = "item-row";
         row.innerHTML = `
             <td style="text-align: center;">
                 <div contenteditable="true">${itemCount}</div>
@@ -207,11 +252,27 @@
                     <button class="btn-upload-small" style="font-size:9px;" onclick="document.getElementById('file-${itemCount}').click()">Insert Picture</button>
                 </div>
             </td>
-            <td contenteditable="true" style="text-align: center;">1</td>
-            <td contenteditable="true" style="text-align: right;">0.00</td>
-            <td style="text-align: right; font-weight: bold;">₱ <span class="item-total" contenteditable="true" oninput="calculateTotal()">0.00</span></td>
+            <td style="text-align: center;">
+                <input type="number" class="price-input" value="1" style="text-align:center;" oninput="calculateRowTotal(this.closest('tr'))">
+            </td>
+            <td>
+                <div style="display:flex; align-items:center; gap:2px;">
+                    <input type="radio" name="price-choice-${itemCount}" value="cash" checked onclick="calculateRowTotal(this.closest('tr'))">
+                    <input type="number" class="price-input cash-price" value="0.00" step="0.01" oninput="calculateRowTotal(this.closest('tr'))">
+                </div>
+            </td>
+            <td>
+                <div style="display:flex; align-items:center; gap:2px;">
+                    <input type="radio" name="price-choice-${itemCount}" value="regular" onclick="calculateRowTotal(this.closest('tr'))">
+                    <input type="number" class="price-input regular-price" value="0.00" step="0.01" oninput="calculateRowTotal(this.closest('tr'))">
+                </div>
+            </td>
+            <td style="text-align: right; font-weight: bold;">
+                ₱ <span class="item-total">0.00</span>
+            </td>
         `;
         tbody.appendChild(row);
+        calculateRowTotal(row);
     }
 
     function loadLogo(input) {
@@ -238,16 +299,23 @@
         }
     }
 
-    function calculateTotal() {
-        let grandTotal = 0;
-        document.querySelectorAll('.item-total').forEach(span => {
-            grandTotal += parseFloat(span.innerText.replace(/,/g, '')) || 0;
-        });
-        document.getElementById('grandTotal').innerText = grandTotal.toLocaleString('en-US', {minimumFractionDigits: 2});
+    // MATALINONG PAG-COMPUTE NG ROW TOTAL BASE SA NAPILING PRICE RADION BUTTON
+    function calculateRowTotal(row) {
+        const qty = parseFloat(row.querySelector('td:nth-child(3) input').value) || 0;
+        const isCashSelected = row.querySelector('input[type="radio"][value="cash"]').checked;
+        
+        let activePrice = 0;
+        if (isCashSelected) {
+            activePrice = parseFloat(row.querySelector('.cash-price').value) || 0;
+        } else {
+            activePrice = parseFloat(row.querySelector('.regular-price').value) || 0;
+        }
+
+        const rowTotal = qty * activePrice;
+        row.querySelector('.item-total').innerText = rowTotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        
+        calculateTotal();
     }
 
-    document.getElementById('currentDate').innerText = new Date().toLocaleDateString('en-US', {year: 'numeric', month: 'long', day: '2-digit'});
-    addItem();
-</script>
-</body>
-</html>
+    function calculateTotal() {
+        let grandTotal = 0;
