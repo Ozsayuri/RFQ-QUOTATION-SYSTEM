@@ -109,20 +109,8 @@
         
         /* Table */
         table { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 20px; table-layout: fixed; }
-        th { background-color: var(--light-blue); border: 1px solid var(--border-color); padding: 8px 5px; font-weight: bold; text-align: center; }
-        td { border: 1px solid var(--border-color); padding: 8px 5px; vertical-align: middle; word-wrap: break-word; }
-
-        /* Price Input Styling inside editable cells */
-        .price-input {
-            width: 100%;
-            border: none;
-            background: transparent;
-            text-align: right;
-            font-family: inherit;
-            font-size: 12px;
-            outline: none;
-        }
-        .price-input:focus { background: #fffde7; }
+        th { background-color: var(--light-blue); border: 1px solid var(--border-color); padding: 10px 5px; font-weight: bold; text-align: center; }
+        td { border: 1px solid var(--border-color); padding: 10px 5px; vertical-align: top; word-wrap: break-word; }
 
         /* Product Image inside table */
         .product-img-box { width: 150px; text-align: center; margin-top: 10px; }
@@ -137,11 +125,17 @@
 
         [contenteditable="true"]:focus { background: #fffde7; outline: none; }
 
+        .price-container {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            justify-content: flex-end;
+        }
+
         @media print {
             .controls-area, .btn-delete, .btn-upload-small, input[type="radio"] { display: none !important; }
             .quotation-card { border: none; box-shadow: none; width: 100%; margin: 0; padding: 0; }
             body { background-color: #fff; padding: 0; }
-            /* Hide the radio button column structure indicators if needed, or keep it clean */
         }
     </style>
 </head>
@@ -229,7 +223,6 @@
 <script>
     let itemCount = 0;
 
-    // FUNCTION PARA PALITAN ANG FONT NG QUOTATION CARD
     function changeQuotationFont(fontName) {
         document.getElementById('quotationCard').style.fontFamily = fontName;
     }
@@ -238,7 +231,6 @@
         itemCount++;
         const tbody = document.getElementById('tableBody');
         const row = document.createElement('tr');
-        row.className = "item-row";
         row.innerHTML = `
             <td style="text-align: center;">
                 <div contenteditable="true">${itemCount}</div>
@@ -252,19 +244,17 @@
                     <button class="btn-upload-small" style="font-size:9px;" onclick="document.getElementById('file-${itemCount}').click()">Insert Picture</button>
                 </div>
             </td>
-            <td style="text-align: center;">
-                <input type="number" class="price-input" value="1" style="text-align:center;" oninput="calculateRowTotal(this.closest('tr'))">
-            </td>
-            <td>
-                <div style="display:flex; align-items:center; gap:2px;">
+            <td contenteditable="true" style="text-align: center;" class="item-qty" oninput="calculateRowTotal(this.closest('tr'))">1</td>
+            <td style="text-align: right;">
+                <div class="price-container">
                     <input type="radio" name="price-choice-${itemCount}" value="cash" checked onclick="calculateRowTotal(this.closest('tr'))">
-                    <input type="number" class="price-input cash-price" value="0.00" step="0.01" oninput="calculateRowTotal(this.closest('tr'))">
+                    <span contenteditable="true" class="cash-price" oninput="calculateRowTotal(this.closest('tr'))">0.00</span>
                 </div>
             </td>
-            <td>
-                <div style="display:flex; align-items:center; gap:2px;">
+            <td style="text-align: right;">
+                <div class="price-container">
                     <input type="radio" name="price-choice-${itemCount}" value="regular" onclick="calculateRowTotal(this.closest('tr'))">
-                    <input type="number" class="price-input regular-price" value="0.00" step="0.01" oninput="calculateRowTotal(this.closest('tr'))">
+                    <span contenteditable="true" class="regular-price" oninput="calculateRowTotal(this.closest('tr'))">0.00</span>
                 </div>
             </td>
             <td style="text-align: right; font-weight: bold;">
@@ -299,16 +289,19 @@
         }
     }
 
-    // MATALINONG PAG-COMPUTE NG ROW TOTAL BASE SA NAPILING PRICE RADION BUTTON
     function calculateRowTotal(row) {
-        const qty = parseFloat(row.querySelector('td:nth-child(3) input').value) || 0;
-        const isCashSelected = row.querySelector('input[type="radio"][value="cash"]').checked;
+        const qtyElement = row.querySelector('.item-qty');
+        const qty = parseFloat(qtyElement.innerText) || 0;
+        
+        const isCashSelected = row.querySelector('input[value="cash"]').checked;
         
         let activePrice = 0;
         if (isCashSelected) {
-            activePrice = parseFloat(row.querySelector('.cash-price').value) || 0;
+            const cashText = row.querySelector('.cash-price').innerText.replace(/,/g, '');
+            activePrice = parseFloat(cashText) || 0;
         } else {
-            activePrice = parseFloat(row.querySelector('.regular-price').value) || 0;
+            const regularText = row.querySelector('.regular-price').innerText.replace(/,/g, '');
+            activePrice = parseFloat(regularText) || 0;
         }
 
         const rowTotal = qty * activePrice;
@@ -319,3 +312,14 @@
 
     function calculateTotal() {
         let grandTotal = 0;
+        document.querySelectorAll('.item-total').forEach(span => {
+            grandTotal += parseFloat(span.innerText.replace(/,/g, '')) || 0;
+        });
+        document.getElementById('grandTotal').innerText = grandTotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    }
+
+    document.getElementById('currentDate').innerText = new Date().toLocaleDateString('en-US', {year: 'numeric', month: 'long', day: '2-digit'});
+    addItem();
+</script>
+</body>
+</html>
